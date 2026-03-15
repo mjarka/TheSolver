@@ -20,7 +20,7 @@ export function MathProblem() {
         <span>{'❤'.repeat(lives)}</span>
       </div>
       <div ref={labelRef} className="math-label">
-        {question.label} = ?
+        {question.label}
       </div>
     </div>
   )

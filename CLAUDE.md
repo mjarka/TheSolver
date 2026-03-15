@@ -29,35 +29,40 @@ playing → wrong → playing (nextQuestion)
 ```
 
 ### Scene — `src/components/Scene.tsx`
-- `PerspectiveCamera` at `[0, 5, 8]`, looks at `[0, 0, 1]`
-- Answer tiles at Z=+3 (bottom of screen, close to camera — easy to tap)
+- `PerspectiveCamera` initial position `[0, 5, 8]`, looks at `[0, 0, 1]`
+- **Responsive camera** via `CameraSetup` (runs in `useFrame`):
+  - Portrait (aspect < 0.9): lerps to `MOBILE_CAM [0, 4, 5]`, `MOBILE_HFOV 85°` — buffer row falls behind camera
+  - Landscape: lerps to `DESKTOP_CAM [0, 5, 8]`, `DESKTOP_HFOV 60°`
+  - Vertical FOV computed from target hFOV ÷ aspect, capped at `FOV_MAX 120°`
+- Answer tiles at Z=`+SHIFT_DIST` (close to camera — easy to tap)
 - Character at Z=0 (middle row)
-- Decorative rows at Z=-3, -6 (scroll away to top)
-- Buffer row at Z=+6 (pre-spawned off-screen bottom)
+- Buffer row at Z=`+SHIFT_DIST*2` (on portrait mobile: behind the camera, not visible)
 
 ### Row system — `src/components/RowManager.tsx`
-- Maintains 5 rows on screen at all times (+6, +3, 0, -3, -6)
-- During `advancing` phase: animates all rows -3 in Z at `SHIFT_SPEED`
-- Rows past Z < -6.5 start fading (`material.opacity` via `traverse`)
+- Maintains 5 rows on screen at all times
+- Row Z positions are multiples of `SHIFT_DIST` (no hardcoded values)
+- During `advancing` phase: animates all rows by `-SHIFT_DIST` at `SHIFT_SPEED`
+- Rows past Z < `-(SHIFT_DIST*2 + 0.5)` start fading (`material.opacity` via `traverse`)
 - Removed from React state only when `opacity === 0`
 - After scroll: calls `advanceQuestion()` — shifts buffer→active, generates new buffer
-- New buffer row pre-spawned at Z=+6
+- `isAnswer` / `isBuffer` flags derived from `baseZ === SHIFT_DIST / SHIFT_DIST*2`
 
 ### Character — `src/components/CharacterFallback.tsx`
 - Position controlled **exclusively via `useFrame`** — no `position={}` prop on the group
   (prevents R3F from teleporting the character when `basePosition` prop changes)
 - Phase transitions detected inside `useFrame` via `prevPhase` ref, not `useEffect`
   (prevents race condition where `useFrame` runs before `useEffect` fires)
-- `correct`: arc jump toward Z=+3 (+X to chosen column), calls `setAdvancing()` on land
+- `correct`: arc jump toward Z=`SHIFT_DIST` (+X to chosen column), calls `setAdvancing()` on land
 - `advancing`: Z moves in sync with tile rows (same `SHIFT_SPEED` / `SHIFT_DIST`)
-- `wrong`: moves toward tile then falls with gravity, calls `nextQuestion()`
+- `wrong`: moves toward tile then falls with gravity; after falling off screen waits `wrongDelay` (2 s) then calls `nextQuestion()`
 
 ### Math generator — `src/utils/mathGenerator.ts`
 Supports `+`, `-`, `×`, `÷`. Division always produces integer results.
 Generates 2 plausible wrong answers (±1–5 offset from correct).
 
 ### Shared constants — `src/constants.ts`
-`SHIFT_DIST = 3`, `SHIFT_SPEED = 5.5` — used by both RowManager and CharacterFallback.
+`SHIFT_DIST`, `SHIFT_SPEED` — used by RowManager, CharacterFallback, and Scene.
+Changing `SHIFT_DIST` automatically adjusts row spacing, scroll distance, jump target, and fade threshold.
 
 ## Key rules
 - **Never use `position={}` prop on the character group** — always set via `useFrame`

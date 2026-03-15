@@ -12,7 +12,7 @@ import type { Group } from 'three'
 //    0  middle row  (character)
 //   -3  back row    (decorative)
 //   -6  fading row  (visible at top, opacity 0→1 inverted)
-const FADE_START_Z = -6.5 // rows past this Z start fading (keeps 5 rows fully visible)
+const FADE_START_Z = -(SHIFT_DIST * 2 + 0.5) // rows past this Z start fading (keeps 5 rows fully visible)
 const FADE_SPEED   = 1.2  // opacity units per second (1/FADE_SPEED = fade duration)
 
 type RowMeta = { id: number }
@@ -31,7 +31,7 @@ export function RowManager() {
     { id: 3 }, // Z = +6  buffer
   ])
 
-  const baseZMap   = useRef(new Map<number, number>([[0, -3],[1, 0],[2, 3],[3, 6]]))
+  const baseZMap   = useRef(new Map<number, number>([[0, -SHIFT_DIST],[1, 0],[2, SHIFT_DIST],[3, SHIFT_DIST * 2]]))
   const groupMap   = useRef(new Map<number, Group | null>())
   const opacityMap = useRef(new Map<number, number>()) // id → current opacity (1=full, 0=gone)
   const shiftProg  = useRef(0)
@@ -110,7 +110,7 @@ export function RowManager() {
 
     // Pre-spawn next buffer row at Z = +6
     const newId = ++_rowId
-    baseZMap.current.set(newId, 6)
+    baseZMap.current.set(newId, SHIFT_DIST * 2)
 
     setRowMetas((prev) => [...prev, { id: newId }])
 
@@ -121,8 +121,8 @@ export function RowManager() {
     <>
       {rowMetas.map(({ id }) => {
         const baseZ    = baseZMap.current.get(id) ?? 0
-        const isAnswer = baseZ === 3
-        const isBuffer = baseZ === 6
+        const isAnswer = baseZ === SHIFT_DIST
+        const isBuffer = baseZ === SHIFT_DIST * 2
 
         return (
           <group
