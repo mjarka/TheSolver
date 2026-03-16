@@ -7,6 +7,7 @@ import { Platform } from './Platform'
 import type { Group } from 'three'
 
 // Z layout:
+//   +9  far buffer row (decorative, blank)
 //   +6  buffer row  (pre-spawned off-screen bottom)
 //   +3  answer row  (active, interactive)
 //    0  middle row  (character)
@@ -16,7 +17,7 @@ const FADE_START_Z = -(SHIFT_DIST * 2 + 0.5) // rows past this Z start fading (k
 const FADE_SPEED   = 1.2  // opacity units per second (1/FADE_SPEED = fade duration)
 
 type RowMeta = { id: number }
-let _rowId = 3
+let _rowId = 4
 
 export function RowManager() {
   const options         = useGameStore((s) => s.options)
@@ -29,9 +30,10 @@ export function RowManager() {
     { id: 1 }, // Z =  0  middle
     { id: 2 }, // Z = +3  answer
     { id: 3 }, // Z = +6  buffer
+    { id: 4 }, // Z = +9  far buffer (decorative)
   ])
 
-  const baseZMap   = useRef(new Map<number, number>([[0, -SHIFT_DIST],[1, 0],[2, SHIFT_DIST],[3, SHIFT_DIST * 2]]))
+  const baseZMap   = useRef(new Map<number, number>([[0, -SHIFT_DIST],[1, 0],[2, SHIFT_DIST],[3, SHIFT_DIST * 2],[4, SHIFT_DIST * 3]]))
   const groupMap   = useRef(new Map<number, Group | null>())
   const opacityMap = useRef(new Map<number, number>()) // id → current opacity (1=full, 0=gone)
   const shiftProg  = useRef(0)
@@ -108,9 +110,9 @@ export function RowManager() {
       }
     })
 
-    // Pre-spawn next buffer row at Z = +6
+    // Pre-spawn next buffer row at Z = +9
     const newId = ++_rowId
-    baseZMap.current.set(newId, SHIFT_DIST * 2)
+    baseZMap.current.set(newId, SHIFT_DIST * 3)
 
     setRowMetas((prev) => [...prev, { id: newId }])
 
@@ -121,8 +123,9 @@ export function RowManager() {
     <>
       {rowMetas.map(({ id }) => {
         const baseZ    = baseZMap.current.get(id) ?? 0
-        const isAnswer = baseZ === SHIFT_DIST
-        const isBuffer = baseZ === SHIFT_DIST * 2
+        const isAnswer   = baseZ === SHIFT_DIST
+        const isBuffer   = baseZ === SHIFT_DIST * 2
+        const isMiddle   = baseZ === 0
 
         return (
           <group
@@ -137,6 +140,7 @@ export function RowManager() {
                 tileIndex={tileIndex}
                 value={isAnswer ? options[tileIndex] : isBuffer ? bufferedOptions[tileIndex] : undefined}
                 interactive={isAnswer}
+                isMiddleRow={isMiddle}
               />
             ))}
           </group>

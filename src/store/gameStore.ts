@@ -23,12 +23,17 @@ interface GameState {
   selectedTileIndex: number;
   currentColumnIndex: number;
 
-  tileFlashAt: number; // increments each time tiles should flash (after character lands)
+  tileFlashAt: number;    // increments each time tiles should flash (after character lands)
+  wrongLandAt: number;    // increments when character fully lands on wrong tile (t>=1)
+  standingFallAt: number; // increments on timeout — tile under character sinks
+  landWrongTile: () => void;
+  triggerStandingFall: () => void;
   startGame: () => void;
   tick: (delta: number) => void;
   answer: (value: number, tileIndex: number) => void;
   flashTiles: () => void;
   setAdvancing: () => void;
+  setAdvancingWrong: () => void;
   /** Called by RowManager after correct scroll: shifts buffer → active, pre-generates new buffer */
   advanceQuestion: () => void;
   /** Called by CharacterFallback after wrong fall: new question, buffer untouched */
@@ -59,6 +64,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   lives: INITIAL_LIVES,
   currentColumnIndex: 1,
   tileFlashAt: 0,
+  wrongLandAt: 0,
+  standingFallAt: 0,
+  landWrongTile: () => set((s) => ({ wrongLandAt: s.wrongLandAt + 1 })),
+  triggerStandingFall: () => set((s) => ({ standingFallAt: s.standingFallAt + 1 })),
 
   startGame: () =>
     set({
@@ -74,7 +83,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (phase !== "playing") return;
     const next = timeLeft - delta;
     if (next <= 0) {
-      set({ timeLeft: 0, phase: "wrong", selectedTileIndex: -1 });
+      set((s) => ({ timeLeft: 0, phase: "wrong", selectedTileIndex: -1, lives: s.lives - 1 }));
     } else {
       set({ timeLeft: next });
     }
@@ -94,6 +103,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   flashTiles: () => set((s) => ({ tileFlashAt: s.tileFlashAt + 1 })),
 
   setAdvancing: () =>
+    set((s) => ({
+      phase: "advancing",
+      currentColumnIndex:
+        s.selectedTileIndex >= 0 ? s.selectedTileIndex : s.currentColumnIndex,
+    })),
+
+  setAdvancingWrong: () =>
     set((s) => ({
       phase: "advancing",
       currentColumnIndex:

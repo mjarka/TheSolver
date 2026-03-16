@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
 import { Vector3, PerspectiveCamera as ThreePerspectiveCamera } from "three";
-import { CharacterFallback } from "./CharacterFallback";
+import { Character } from "./Character";
 import { RowManager } from "./RowManager";
 import { GameLoop } from "./GameLoop";
 import { useGameStore, TILE_X } from "../store/gameStore";
@@ -45,8 +45,8 @@ function CameraSetup() {
 
 function CharacterWithColumn() {
   const col = useGameStore((s) => s.currentColumnIndex);
-  const base: [number, number, number] = [TILE_X[col], 0.4, 0];
-  return <CharacterFallback basePosition={base} />;
+  const base: [number, number, number] = [TILE_X[col], 0.1, 0];
+  return <Character basePosition={base} />;
 }
 
 export function Scene() {
@@ -73,16 +73,7 @@ export function Scene() {
         shadow-camera-bottom={-10}
       />
 
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -0.11, 0]}
-        receiveShadow
-      >
-        <planeGeometry args={[40, 40]} />
-        <meshStandardMaterial color="#16213e" />
-      </mesh>
-
-      <Suspense fallback={null}>
+<Suspense fallback={null}>
         <RowManager />
         <CharacterWithColumn />
       </Suspense>

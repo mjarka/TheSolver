@@ -14,6 +14,9 @@ export default function App() {
       <Scene />
 
       {/* HTML overlays */}
+      {phase !== 'start' && (
+        <div className="hud-backdrop" />
+      )}
       {phase !== 'start' && <MathProblem />}
       {phase !== 'start' && phase !== 'gameover' && <TimerBar />}
       <StartScreen />

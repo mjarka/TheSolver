@@ -19,11 +19,14 @@ export function CharacterFallback({ basePosition }: Props) {
   const selectedTileIndex = useGameStore((s) => s.selectedTileIndex);
   const setAdvancing = useGameStore((s) => s.setAdvancing);
   const flashTiles = useGameStore((s) => s.flashTiles);
+  const landWrongTile = useGameStore((s) => s.landWrongTile);
+  const triggerStandingFall = useGameStore((s) => s.triggerStandingFall);
   const nextQuestion = useGameStore((s) => s.nextQuestion);
 
   const t = useRef(0);
   const done = useRef(false);
   const wrongFlashFired = useRef(false);
+  const wrongLandFired  = useRef(false);
   const wrongDelay = useRef(0);
   const returnFrom = useRef<[number, number, number]>([...basePosition]);
   const scrolled = useRef(0);
@@ -46,6 +49,7 @@ export function CharacterFallback({ basePosition }: Props) {
         t.current = 0;
         done.current = false;
         wrongFlashFired.current = false;
+        wrongLandFired.current = false;
         wrongDelay.current = 0;
       }
       if (phase === "advancing") {
@@ -101,25 +105,50 @@ export function CharacterFallback({ basePosition }: Props) {
       return;
     }
 
-    // ── WRONG: move to tile then fall ─────────────────────
+    // ── WRONG: arc jump to tile then fall ────────────────
     if (phase === "wrong") {
       if (done.current) {
         wrongDelay.current -= delta;
         if (wrongDelay.current <= 0) nextQuestion();
         return;
       }
+
+      // ── TIMEOUT: no jump, fall from standing tile ──────
+      if (selectedTileIndex === -1) {
+        if (!wrongFlashFired.current) {
+          wrongFlashFired.current = true;
+          triggerStandingFall();
+        }
+        t.current += delta;
+        pos.y = basePosition[1] - t.current * t.current * FALL_GRAVITY * 60;
+        if (pos.y < -8 && !done.current) {
+          done.current = true;
+          wrongDelay.current = 2;
+        }
+        return;
+      }
+
+      // ── WRONG TILE: arc jump then fall ─────────────────
       t.current += delta * JUMP_SPEED;
       const p = Math.min(t.current, 1);
-      const targetX =
-        selectedTileIndex >= 0 ? TILE_X[selectedTileIndex] : basePosition[0];
-      const fallT = Math.max(0, t.current - 0.3);
+      const targetX = TILE_X[selectedTileIndex];
       pos.x = basePosition[0] + (targetX - basePosition[0]) * p;
-      pos.z =
-        basePosition[2] + (ANSWER_ROW_Z - basePosition[2]) * Math.min(p * 2, 1);
-      pos.y = basePosition[1] - fallT * fallT * FALL_GRAVITY * 60;
-      if (t.current >= 0.5 && !wrongFlashFired.current) {
+      pos.z = basePosition[2] + (ANSWER_ROW_Z - basePosition[2]) * p;
+
+      if (t.current <= 1) {
+        pos.y = basePosition[1] + Math.sin(p * Math.PI) * JUMP_HEIGHT;
+      } else {
+        const fallT = t.current - 1;
+        pos.y = basePosition[1] - fallT * fallT * FALL_GRAVITY * 60;
+      }
+
+      if (t.current >= 1 && !wrongFlashFired.current) {
         wrongFlashFired.current = true;
         flashTiles();
+      }
+      if (t.current >= 1 && !wrongLandFired.current) {
+        wrongLandFired.current = true;
+        landWrongTile();
       }
       if (pos.y < -8 && !done.current) {
         done.current = true;
