@@ -55,7 +55,7 @@
 
 @font-face {
   font-family: "Chakra Petch";
-  src: url("/fonts/ChakraPetch-Bold.ttf") format("truetype");
+  src: url("/TheSolver/fonts/ChakraPetch-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
 }
@@ -283,7 +283,7 @@ body {
 
 .app-root {
   background-color: #1a1a2e;
-  background-image: url("/background.jpg");
+  background-image: url("/TheSolver/background.jpg");
   background-size: auto;
   background-position: center;
   background-repeat: no-repeat;

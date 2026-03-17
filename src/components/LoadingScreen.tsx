@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useProgress } from '@react-three/drei'
 import { useGameStore } from '../store/gameStore'
+import { asset } from '../utils/assetUrl'
 
 export function LoadingScreen() {
   const { progress, active } = useProgress()
@@ -20,7 +21,7 @@ export function LoadingScreen() {
 
   return (
     <div className={`loading-screen${fading ? ' loading-screen--out' : ''}`}>
-      <img src="/logotype.png" className="start-logo" alt="The Solver" />
+      <img src={asset("/logotype.png")} className="start-logo" alt="The Solver" />
       <div className="loading-bar-wrap">
         <div className="loading-bar-fill" style={{ '--pct': `${progress}%` } as React.CSSProperties} />
       </div>

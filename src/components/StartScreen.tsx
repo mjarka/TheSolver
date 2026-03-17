@@ -1,4 +1,5 @@
 import { useGameStore } from '../store/gameStore'
+import { asset } from '../utils/assetUrl'
 import type { Difficulty } from '../utils/mathGenerator'
 
 const LEVELS: { difficulty: Difficulty; label: string; sub: string }[] = [
@@ -16,7 +17,7 @@ export function StartScreen() {
 
   return (
     <div className="start-header">
-      <img src="/logotype.png" className="start-logo" alt="The Solver" />
+      <img src={asset("/logotype.png")} className="start-logo" alt="The Solver" />
 
       <div className="level-list">
         {LEVELS.map(({ difficulty: d, label, sub }) => (

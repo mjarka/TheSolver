@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, useGLTF, useTexture } from "@react-three/drei";
 import { useGameStore } from "../store/gameStore";
+import { asset } from "../utils/assetUrl";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { Group, MeshStandardMaterial, MeshBasicMaterial } from "three";
 import { Color, Mesh } from "three";
@@ -22,7 +23,7 @@ const FLASH_DURATION = 0.6; // seconds — correct answer on correct guess
 const WRONG_CORRECT_DURATION = 2.2; // seconds — correct tile stays green on wrong guess
 
 function useBlockMeshes() {
-  const { scene } = useGLTF("/models/boxGeometry.glb") as unknown as {
+  const { scene } = useGLTF(asset("/models/boxGeometry.glb")) as unknown as {
     scene: Group;
   };
   const meshes: Record<string, Mesh["geometry"]> = {};
@@ -42,8 +43,8 @@ export function Platform({
   isStartTile = false,
 }: PlatformProps) {
   const blockMeshes = useBlockMeshes();
-  const colorMap = useTexture("/ColorMap.jpg");
-  const normalMap = useTexture("/NormalMap.png");
+  const colorMap = useTexture(asset("/ColorMap.jpg"));
+  const normalMap = useTexture(asset("/NormalMap.png"));
   const groupRef = useRef<Group>(null);
   const matRef = useRef<MeshBasicMaterial>(null);
   const emitMatRef = useRef<MeshStandardMaterial>(null);
@@ -259,7 +260,7 @@ export function Platform({
           anchorX="center"
           anchorY="middle"
           renderOrder={1}
-          font="/fonts/ChakraPetch-Bold.ttf"
+          font={asset("/fonts/ChakraPetch-Bold.ttf")}
         >
           START
         </Text>
@@ -274,7 +275,7 @@ export function Platform({
             anchorX="center"
             anchorY="middle"
             renderOrder={1}
-            font="/fonts/ChakraPetch-Bold.ttf"
+            font={asset("/fonts/ChakraPetch-Bold.ttf")}
           >
             {String(displayValue.current)}
           </Text>
@@ -284,4 +285,4 @@ export function Platform({
   );
 }
 
-useGLTF.preload("/models/boxGeometry.glb");
+useGLTF.preload(asset("/models/boxGeometry.glb"));

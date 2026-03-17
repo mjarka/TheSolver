@@ -3,6 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { useGameStore, TILE_X } from "../store/gameStore";
 import { SHIFT_DIST, SHIFT_SPEED } from "../constants";
+import { asset } from "../utils/assetUrl";
 import type { Group } from "three";
 import { Mesh, MeshBasicMaterial, AnimationMixer, AnimationClip, LoopOnce } from "three";
 import type { AnimationAction } from "three";
@@ -11,7 +12,7 @@ interface Props {
   basePosition: [number, number, number];
 }
 
-const MODEL_PATH = "/models/character.glb";
+const MODEL_PATH = asset("/models/character.glb");
 const ANSWER_ROW_Z = SHIFT_DIST;
 const JUMP_HEIGHT = 0.9;
 const JUMP_SPEED = 2.2;
