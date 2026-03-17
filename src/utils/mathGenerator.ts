@@ -1,4 +1,5 @@
 export type Operation = '+' | '-' | '×' | '÷'
+export type Difficulty = 'easy' | 'medium' | 'hard'
 
 export interface Question {
   a: number
@@ -22,13 +23,12 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function wrongOptions(correct: number, count = 2): number[] {
+function wrongOptions(correct: number, count = 2, maxOffset = 5): number[] {
   const wrongs = new Set<number>()
   let attempts = 0
   while (wrongs.size < count && attempts < 100) {
     attempts++
-    // offset by ±1..5, avoid 0 and negatives
-    const offset = rand(1, 5) * (Math.random() < 0.5 ? 1 : -1)
+    const offset = rand(1, maxOffset) * (Math.random() < 0.5 ? 1 : -1)
     const candidate = correct + offset
     if (candidate > 0 && candidate !== correct) {
       wrongs.add(candidate)
@@ -37,40 +37,55 @@ function wrongOptions(correct: number, count = 2): number[] {
   return Array.from(wrongs)
 }
 
-function buildOptions(answer: number): number[] {
-  const wrongs = wrongOptions(answer)
+function buildOptions(answer: number, maxOffset = 5): number[] {
+  const wrongs = wrongOptions(answer, 2, maxOffset)
   return shuffle([answer, ...wrongs])
 }
 
-export function generateQuestion(): Question {
-  const ops: Operation[] = ['+', '-', '×', '÷']
-  const op = ops[rand(0, ops.length - 1)]
-
+export function generateQuestion(difficulty: Difficulty = 'easy'): Question {
+  let ops: Operation[]
   let a: number, b: number, answer: number
+  let maxOffset: number
+
+  if (difficulty === 'easy') {
+    ops = ['+', '-']
+    maxOffset = 5
+  } else if (difficulty === 'medium') {
+    ops = ['×', '÷']
+    maxOffset = 5
+  } else {
+    ops = ['+', '-', '×', '÷']
+    maxOffset = 10
+  }
+
+  const op = ops[rand(0, ops.length - 1)]
 
   switch (op) {
     case '+': {
-      a = rand(1, 20)
-      b = rand(1, 20)
+      const max = difficulty === 'hard' ? 50 : 10
+      a = rand(1, max)
+      b = rand(1, max)
       answer = a + b
       break
     }
     case '-': {
-      a = rand(2, 20)
+      const max = difficulty === 'hard' ? 50 : 10
+      a = rand(2, max)
       b = rand(1, a)
       answer = a - b
       break
     }
     case '×': {
-      a = rand(2, 9)
-      b = rand(2, 9)
+      const max = difficulty === 'hard' ? 12 : 9
+      a = rand(2, max)
+      b = rand(2, max)
       answer = a * b
       break
     }
     case '÷': {
-      // generate as multiplication to guarantee integer result
-      b = rand(2, 9)
-      answer = rand(2, 9)
+      const max = difficulty === 'hard' ? 12 : 9
+      b = rand(2, max)
+      answer = rand(2, max)
       a = b * answer
       break
     }
@@ -82,6 +97,6 @@ export function generateQuestion(): Question {
     operation: op,
     answer,
     label: `${a} ${op} ${b}`,
-    options: buildOptions(answer),
+    options: buildOptions(answer, maxOffset),
   }
 }

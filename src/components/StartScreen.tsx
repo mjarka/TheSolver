@@ -1,30 +1,40 @@
 import { useGameStore } from '../store/gameStore'
+import type { Difficulty } from '../utils/mathGenerator'
+
+const LEVELS: { difficulty: Difficulty; label: string; sub: string }[] = [
+  { difficulty: 'easy',   label: 'Easy',   sub: '+ −'     },
+  { difficulty: 'medium', label: 'Medium', sub: '× ÷'     },
+  { difficulty: 'hard',   label: 'Hard',   sub: '+ − × ÷' },
+]
 
 export function StartScreen() {
-  const phase = useGameStore((s) => s.phase)
-  const startGame = useGameStore((s) => s.startGame)
+  const phase            = useGameStore((s) => s.phase)
+  const difficulty       = useGameStore((s) => s.difficulty)
+  const selectDifficulty = useGameStore((s) => s.selectDifficulty)
 
   if (phase !== 'start') return null
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-black/60 z-50">
-      <div className="text-white text-center px-8">
-        <div
-          className="font-black mb-2"
-          style={{ fontSize: 'clamp(3rem, 15vw, 6rem)' }}
-        >
-          The Solver
-        </div>
-        <div className="text-white/60 text-lg mb-10">
-          Matematyczne skoki
-        </div>
-        <button
-          onClick={startGame}
-          className="px-12 py-5 text-2xl font-bold rounded-3xl bg-white text-black
-                     active:scale-95 transition-transform shadow-xl"
-        >
-          Start
-        </button>
+    <div className="start-header">
+      <img src="/logotype.png" className="start-logo" alt="The Solver" />
+
+      <div className="level-list">
+        {LEVELS.map(({ difficulty: d, label, sub }) => (
+          <div
+            key={d}
+            className={`level-btn-wrap${difficulty === d ? ' level-btn-wrap--active' : ''}`}
+            data-difficulty={d}
+          >
+<button
+              type="button"
+              className="level-btn"
+              onClick={() => selectDifficulty(d)}
+            >
+              <div className="level-btn-label">{label}</div>
+              <div className="level-btn-sub">{sub}</div>
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   )

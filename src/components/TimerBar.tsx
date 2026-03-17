@@ -11,11 +11,13 @@ export function TimerBar() {
 
   useEffect(() => {
     const pct = Math.max(0, (timeLeft / TIMER_MS) * 100)
-    const hue = Math.round((pct / 100) * 120)
+    const hue = Math.round((pct / 100) * 210) // 0 (red) → 210 (blue)
+    const color = `hsl(${hue}, 90%, 55%)`
     const fill = fillRef.current
     if (!fill) return
     fill.style.width = `${pct}%`
-    fill.style.backgroundColor = `hsl(${hue}, 90%, 50%)`
+    fill.style.backgroundColor = color
+    fill.style.boxShadow = `0 0 8px 2px ${color}, 0 0 20px 4px hsla(${hue}, 90%, 55%, 0.5)`
     fill.style.transition = phase === 'playing' ? 'width 0.1s linear' : 'none'
   }, [timeLeft, phase])
 

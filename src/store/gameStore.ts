@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { generateQuestion, type Question } from "../utils/mathGenerator";
+import { generateQuestion, type Question, type Difficulty } from "../utils/mathGenerator";
 
 export type Phase =
   | "start"
@@ -12,7 +12,10 @@ export type Phase =
 export const TILE_X = [-2, 0, 2] as const;
 
 interface GameState {
+  sceneReady: boolean;
+  setSceneReady: () => void;
   phase: Phase;
+  difficulty: Difficulty;
   question: Question;
   options: number[];
   bufferedQuestion: Question; // pre-generated next question, shown on buffer row
@@ -28,6 +31,7 @@ interface GameState {
   standingFallAt: number; // increments on timeout — tile under character sinks
   landWrongTile: () => void;
   triggerStandingFall: () => void;
+  selectDifficulty: (difficulty: Difficulty) => void;
   startGame: () => void;
   tick: (delta: number) => void;
   answer: (value: number, tileIndex: number) => void;
@@ -42,11 +46,11 @@ interface GameState {
 }
 
 const TIMER_MS = 5000;
-const INITIAL_LIVES = 3;
+export const INITIAL_LIVES = 5;
 
-function newRound() {
-  const q = generateQuestion();
-  const b = generateQuestion();
+function newRound(difficulty: Difficulty) {
+  const q = generateQuestion(difficulty);
+  const b = generateQuestion(difficulty);
   return {
     question: q,
     options: q.options,
@@ -58,8 +62,11 @@ function newRound() {
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
+  sceneReady: false,
+  setSceneReady: () => set({ sceneReady: true }),
   phase: "start",
-  ...newRound(),
+  difficulty: "easy",
+  ...newRound("easy"),
   score: 0,
   lives: INITIAL_LIVES,
   currentColumnIndex: 1,
@@ -69,14 +76,18 @@ export const useGameStore = create<GameState>((set, get) => ({
   landWrongTile: () => set((s) => ({ wrongLandAt: s.wrongLandAt + 1 })),
   triggerStandingFall: () => set((s) => ({ standingFallAt: s.standingFallAt + 1 })),
 
-  startGame: () =>
+  selectDifficulty: (difficulty) => set({ difficulty }),
+
+  startGame: () => {
+    const { difficulty } = get();
     set({
       phase: "playing",
       score: 0,
       lives: INITIAL_LIVES,
       currentColumnIndex: 1,
-      ...newRound(),
-    }),
+      ...newRound(difficulty),
+    });
+  },
 
   tick: (delta) => {
     const { phase, timeLeft } = get();
@@ -117,12 +128,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     })),
 
   advanceQuestion: () => {
-    const { lives, bufferedQuestion } = get();
+    const { lives, bufferedQuestion, difficulty } = get();
     if (lives <= 0) {
       set({ phase: "gameover" });
       return;
     }
-    const next = generateQuestion();
+    const next = generateQuestion(difficulty);
     set({
       phase: "playing",
       question: bufferedQuestion,
@@ -135,12 +146,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   nextQuestion: () => {
-    const { lives } = get();
+    const { lives, difficulty } = get();
     if (lives <= 0) {
       set({ phase: "gameover" });
       return;
     }
-    const q = generateQuestion();
+    const q = generateQuestion(difficulty);
     set({
       phase: "playing",
       question: q,
@@ -150,12 +161,5 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
-  restartGame: () =>
-    set({
-      phase: "playing",
-      score: 0,
-      lives: INITIAL_LIVES,
-      currentColumnIndex: 1,
-      ...newRound(),
-    }),
+  restartGame: () => set({ phase: "start" }),
 }));

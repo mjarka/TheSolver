@@ -3,13 +3,14 @@ import { MathProblem } from './components/MathProblem'
 import { TimerBar } from './components/TimerBar'
 import { GameOver } from './components/GameOver'
 import { StartScreen } from './components/StartScreen'
+import { LoadingScreen } from './components/LoadingScreen'
 import { useGameStore } from './store/gameStore'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-[#1a1a2e]">
+    <div className="fixed inset-0 overflow-hidden app-root">
       {/* 3D canvas fills the viewport */}
       <Scene />
 
@@ -21,6 +22,7 @@ export default function App() {
       {phase !== 'start' && phase !== 'gameover' && <TimerBar />}
       <StartScreen />
       <GameOver />
+      <LoadingScreen />
     </div>
   )
 }
