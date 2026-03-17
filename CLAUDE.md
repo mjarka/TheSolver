@@ -51,21 +51,26 @@ playing → wrong    → advancing → playing (setAdvancingWrong → advanceQue
 - Maintains 6 rows: Z = -SHIFT_DIST, 0, +SHIFT_DIST, +SHIFT_DIST*2, +SHIFT_DIST*3 (+ fading)
 - New rows spawn at Z=`+SHIFT_DIST*3` (far buffer, blank)
 - During `advancing` phase: animates all rows by `-SHIFT_DIST` at `SHIFT_SPEED`
-- Rows past Z < `-(SHIFT_DIST*2 + 0.5)` start fading (`material.opacity` via `traverse`)
+- Rows past threshold start fading via `traverse` — handles both `MeshStandardMaterial` and `MeshBasicMaterial`
+- `FADE_SPEED = 0.4` → fade duration ~2.5s
 - Removed from React state only when `opacity === 0`
 - After scroll: calls `advanceQuestion()` — shifts buffer→active, generates new buffer
 - `isAnswer` / `isBuffer` / `isMiddle` flags derived from baseZ value
 - Passes `isMiddleRow` prop to Platform (needed for standing tile fall on timeout)
 
 ### Character — `src/components/Character.tsx`
-- Loads `public/models/character.glb` via `useGLTF`; all meshes have `castShadow = true`
+- Loads `public/models/character.glb` via `useGLTF`; meshes use `MeshBasicMaterial` (shadeless)
 - Position controlled **exclusively via `useFrame`** — no `position={}` prop on the group
 - Phase transitions detected inside `useFrame` via `prevPhase` ref (no `useEffect`)
-- **Idle**: breathing animation via `scale.y` (±3%), character faces forward
-- **correct**: arc jump toward Z=`SHIFT_DIST`, `scale.y` peaks at 1.25× at apex; calls `setAdvancing()` on land
+- **Animations** via `AnimationMixer` — all `LoopOnce`, `clampWhenFinished`:
+  - `jump` — plays on `correct` and `wrong` phase entry; stops on `playing`/`advancing`
+  - `idle` — fires randomly every 3–7s during `start` phase
+  - `eyeblinking` — fires randomly every 2–6s during `playing` phase
+- **Idle (no anim)**: breathing via `scale.y` (±3%), character faces forward
+- **correct**: arc jump toward Z=`SHIFT_DIST`, `JUMP_HEIGHT = 0.9`; calls `setAdvancing()` on land
 - **advancing**: Z moves in sync with tile rows (same `SHIFT_SPEED` / `SHIFT_DIST`)
 - **wrong (tile selected)**:
-  - Arc jump to wrong tile with `scale.y` animation
+  - Arc jump to wrong tile
   - `lives > 0`: lands, calls `setAdvancingWrong()` immediately (tiles scroll)
   - `lives = 0`: falls off screen, waits 2s, calls `nextQuestion()` → gameover
 - **wrong (timeout, selectedTileIndex = -1)**:
@@ -78,8 +83,13 @@ playing → wrong    → advancing → playing (setAdvancingWrong → advanceQue
 - 3D text via `<Text>` from drei, flat on tile surface (`rotation={[-π/2,0,0]}`)
 - Font: `public/fonts/ChakraPetch-Bold.ttf`
 - `displayValue` ref caches last known value — number stays visible after tile scrolls past, fading out when flash ends
-- **Flash colors**: green (correct tile), red (wrong tile)
-  - Correct tile on wrong guess: `WRONG_CORRECT_DURATION = 2.2s` (covers full wrong delay)
+- **Mesh materials**:
+  - `body` — `MeshBasicMaterial` (shadeless, baked texture from Blender) with `colorMap`
+  - `emit` — `MeshStandardMaterial` with emissive flash (green correct, red wrong)
+  - `black` — `MeshStandardMaterial` black, `transparent` for fade support
+- **Text color** follows flash: green on correct tile, red on wrong tile; resets to white when flash ends
+- **Flash durations**:
+  - Correct tile on wrong guess: `WRONG_CORRECT_DURATION = 2.2s`
   - Correct answer on correct guess: `FLASH_DURATION = 0.6s`
   - Wrong tile: `FLASH_DURATION = 0.6s`
 - **Tile fall** (Y-axis drop with gravity): triggered by `wrongLandAt` (wrong tile) or `standingFallAt` (timeout) — only when `lives === 0`
@@ -87,7 +97,8 @@ playing → wrong    → advancing → playing (setAdvancingWrong → advanceQue
 
 ### HUD — `src/App.tsx` + `src/index.css`
 - `.hud-backdrop`: fixed gradient overlay (`height: 65%`, dark at bottom → transparent at top)
-- `.math-label` uses Chakra Petch Bold via `@font-face`
+- `.math-label` uses Chakra Petch Bold via `@font-face`; has `margin-bottom: 0.6rem`
+- **GameOver button** uses SVG polygon outline (hexagon shape with two cut corners) instead of CSS border
 
 ### Math generator — `src/utils/mathGenerator.ts`
 Supports `+`, `-`, `×`, `÷`. Division always produces integer results.
@@ -100,15 +111,24 @@ Changing `SHIFT_DIST` automatically adjusts row spacing, scroll distance, jump t
 ## Key rules
 - **Never use `position={}` prop on the character group** — always set via `useFrame`
 - **Detect phase changes inside `useFrame`, not `useEffect`** — avoids one-frame teleport glitch
-- Tile materials have `transparent={true}` — required for fade-out animation
+- Tile materials have `transparent={true}` — required for fade-out animation (all three mesh types: body, emit, black)
+- `body` mesh uses `MeshBasicMaterial` — do not add lighting-dependent props (`roughness`, `normalMap`, `emissive`)
 - Only the character casts shadows (`castShadow`), not tiles
 - Timer runs only during `playing` phase; all other phases pause it
 - Wrong answer always goes through `advancing` phase (tiles scroll) unless `lives === 0`
 - Flash tile color check uses `value !== question.answer` (not `phase === 'wrong'`) so it works after phase changes to `advancing`
 
 ## Assets
-- `public/models/character.glb` — player character (no animations currently)
+- `public/models/character.glb` — player character with animations: `jump`, `idle`, `eyeblinking`
+- `public/models/boxGeometry.glb` — tile model with meshes: `body`, `emit`, `black`
+- `public/ColorMap.jpg` — baked color texture for tiles
+- `public/NormalMap.png` — normal map for `emit`/`black` meshes
 - `public/fonts/ChakraPetch-Bold.ttf` — tile and HUD numbers
+
+## Hosting
+- Deployed via GitHub Actions to GitHub Pages on every push to `master`
+- Live URL: `https://mjarka.github.io/TheSolver/`
+- Vite `base: '/TheSolver/'` required for correct asset paths
 
 ## Dev
 ```bash
