@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Mesh, MeshStandardMaterial } from 'three'
+import { Mesh, MeshStandardMaterial, MeshBasicMaterial } from 'three'
 import { useGameStore, TILE_X } from '../store/gameStore'
 import { SHIFT_DIST, SHIFT_SPEED } from '../constants'
 import { Platform } from './Platform'
@@ -13,11 +13,11 @@ import type { Group } from 'three'
 //    0  middle row  (character)
 //   -3  back row    (decorative)
 //   -6  fading row  (visible at top, opacity 0→1 inverted)
-const FADE_START_Z = -(SHIFT_DIST * 2 + 0.5) // rows past this Z start fading (keeps 5 rows fully visible)
-const FADE_SPEED   = 1.2  // opacity units per second (1/FADE_SPEED = fade duration)
+const FADE_START_Z = -(SHIFT_DIST * 5 + 0.5) // rows past this Z start fading
+const FADE_SPEED   = 0.4  // opacity units per second (1/FADE_SPEED = fade duration)
 
 type RowMeta = { id: number }
-let _rowId = 4
+let _rowId = 8
 
 export function RowManager() {
   const options         = useGameStore((s) => s.options)
@@ -26,14 +26,28 @@ export function RowManager() {
   const advanceQuestion = useGameStore((s) => s.advanceQuestion)
 
   const [rowMetas, setRowMetas] = useState<RowMeta[]>([
-    { id: 0 }, // Z = -3  decorative
-    { id: 1 }, // Z =  0  middle
-    { id: 2 }, // Z = +3  answer
-    { id: 3 }, // Z = +6  buffer
-    { id: 4 }, // Z = +9  far buffer (decorative)
+    { id: 0 }, // Z = -15 decorative
+    { id: 1 }, // Z = -12 decorative
+    { id: 2 }, // Z = -9  decorative
+    { id: 3 }, // Z = -6  decorative
+    { id: 4 }, // Z = -3  decorative
+    { id: 5 }, // Z =  0  middle
+    { id: 6 }, // Z = +3  answer
+    { id: 7 }, // Z = +6  buffer
+    { id: 8 }, // Z = +9  far buffer (decorative)
   ])
 
-  const baseZMap   = useRef(new Map<number, number>([[0, -SHIFT_DIST],[1, 0],[2, SHIFT_DIST],[3, SHIFT_DIST * 2],[4, SHIFT_DIST * 3]]))
+  const baseZMap   = useRef(new Map<number, number>([
+    [0, -SHIFT_DIST * 5],
+    [1, -SHIFT_DIST * 4],
+    [2, -SHIFT_DIST * 3],
+    [3, -SHIFT_DIST * 2],
+    [4, -SHIFT_DIST],
+    [5, 0],
+    [6, SHIFT_DIST],
+    [7, SHIFT_DIST * 2],
+    [8, SHIFT_DIST * 3],
+  ]))
   const groupMap   = useRef(new Map<number, Group | null>())
   const opacityMap = useRef(new Map<number, number>()) // id → current opacity (1=full, 0=gone)
   const shiftProg  = useRef(0)
@@ -60,7 +74,7 @@ export function RowManager() {
         g.traverse((child) => {
           if (child instanceof Mesh) {
             const mat = child.material
-            if (mat instanceof MeshStandardMaterial) {
+            if (mat instanceof MeshStandardMaterial || mat instanceof MeshBasicMaterial) {
               mat.opacity = next
             }
           }
@@ -138,9 +152,10 @@ export function RowManager() {
                 key={tileIndex}
                 position={[x, 0, 0]}
                 tileIndex={tileIndex}
-                value={isAnswer ? options[tileIndex] : isBuffer ? bufferedOptions[tileIndex] : undefined}
-                interactive={isAnswer}
+                value={isAnswer && phase !== 'start' ? options[tileIndex] : isBuffer && phase !== 'start' ? bufferedOptions[tileIndex] : undefined}
+                interactive={isAnswer && phase !== 'start'}
                 isMiddleRow={isMiddle}
+                isStartTile={isAnswer && tileIndex === 1 && phase === 'start'}
               />
             ))}
           </group>

@@ -4,7 +4,8 @@ import { useGLTF } from "@react-three/drei";
 import { useGameStore, TILE_X } from "../store/gameStore";
 import { SHIFT_DIST, SHIFT_SPEED } from "../constants";
 import type { Group } from "three";
-import { Mesh } from "three";
+import { Mesh, MeshBasicMaterial, AnimationMixer, AnimationClip, LoopOnce } from "three";
+import type { AnimationAction } from "three";
 
 interface Props {
   basePosition: [number, number, number];
@@ -12,13 +13,19 @@ interface Props {
 
 const MODEL_PATH = "/models/character.glb";
 const ANSWER_ROW_Z = SHIFT_DIST;
-const JUMP_HEIGHT = 1.4;
+const JUMP_HEIGHT = 0.9;
 const JUMP_SPEED = 2.2;
 const FALL_GRAVITY = 0.18;
 
 export function Character({ basePosition }: Props) {
   const group = useRef<Group>(null);
-  const { scene } = useGLTF(MODEL_PATH);
+  const { scene, animations } = useGLTF(MODEL_PATH);
+  const mixerRef = useRef<AnimationMixer | null>(null);
+  const jumpActionRef = useRef<AnimationAction | null>(null);
+  const idleActionRef = useRef<AnimationAction | null>(null);
+  const eyeblinkActionRef = useRef<AnimationAction | null>(null);
+  const idleTimer = useRef(3 + Math.random() * 4);    // next idle in 3–7s
+  const eyeblinkTimer = useRef(2 + Math.random() * 4); // next blink in 2–6s
 
   const phase = useGameStore((s) => s.phase);
   const lives = useGameStore((s) => s.lives);
@@ -43,13 +50,61 @@ export function Character({ basePosition }: Props) {
   useLayoutEffect(() => {
     group.current?.position.set(...basePosition);
     scene.traverse((child) => {
-      if (child instanceof Mesh) child.castShadow = true;
+      if (child instanceof Mesh) {
+        child.castShadow = true;
+        const oldMat = child.material as { map?: MeshBasicMaterial["map"] };
+        child.material = new MeshBasicMaterial({ map: oldMat.map ?? null });
+      }
     });
+    const mixer = new AnimationMixer(scene);
+    mixerRef.current = mixer;
+    const clip = AnimationClip.findByName(animations, "jump");
+    if (clip) {
+      const action = mixer.clipAction(clip);
+      action.loop = LoopOnce;
+      action.clampWhenFinished = true;
+      jumpActionRef.current = action;
+    }
+    const idleClip = AnimationClip.findByName(animations, "idle");
+    if (idleClip) {
+      const action = mixer.clipAction(idleClip);
+      action.loop = LoopOnce;
+      action.clampWhenFinished = true;
+      idleActionRef.current = action;
+    }
+    const blinkClip = AnimationClip.findByName(animations, "eyeblinking");
+    if (blinkClip) {
+      const action = mixer.clipAction(blinkClip);
+      action.loop = LoopOnce;
+      action.clampWhenFinished = true;
+      eyeblinkActionRef.current = action;
+    }
+    return () => { mixer.stopAllAction(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useFrame((_, delta) => {
     if (!group.current) return;
     const pos = group.current.position;
+
+    mixerRef.current?.update(delta);
+
+    // ── IDLE anim (start screen) ───────────────────────────
+    if (phase === "start") {
+      idleTimer.current -= delta;
+      if (idleTimer.current <= 0) {
+        idleActionRef.current?.reset().play();
+        idleTimer.current = 3 + Math.random() * 4;
+      }
+    }
+
+    // ── EYEBLINK anim (during gameplay) ───────────────────
+    if (phase === "playing") {
+      eyeblinkTimer.current -= delta;
+      if (eyeblinkTimer.current <= 0) {
+        eyeblinkActionRef.current?.reset().play();
+        eyeblinkTimer.current = 2 + Math.random() * 4;
+      }
+    }
 
     if (prevPhase.current !== phase) {
       if (phase === "correct" || phase === "wrong") {
@@ -64,10 +119,12 @@ export function Character({ basePosition }: Props) {
           const dz = ANSWER_ROW_Z - basePosition[2];
           targetRotY.current = Math.atan2(dx, dz);
         }
+        jumpActionRef.current?.reset().play();
       }
       if (phase === "playing" || phase === "advancing") {
         targetRotY.current = 0;
         group.current?.scale.set(1, 1, 1);
+        jumpActionRef.current?.stop();
       }
       if (phase === "advancing") {
         returnFrom.current = [pos.x, pos.y, pos.z];
@@ -116,9 +173,8 @@ export function Character({ basePosition }: Props) {
       );
       const ratio = scrolled.current / SHIFT_DIST;
       pos.z = returnFrom.current[2] - scrolled.current;
-      pos.x =
-        returnFrom.current[0] +
-        (basePosition[0] - returnFrom.current[0]) * ratio;
+      const targetX = TILE_X[useGameStore.getState().currentColumnIndex];
+      pos.x = returnFrom.current[0] + (targetX - returnFrom.current[0]) * ratio;
       pos.y =
         returnFrom.current[1] +
         (basePosition[1] - returnFrom.current[1]) * ratio;
@@ -133,43 +189,46 @@ export function Character({ basePosition }: Props) {
         return;
       }
 
-      // TIMEOUT: jump in place, then fall (lives=0) or advance (lives>0)
+      // TIMEOUT
       if (selectedTileIndex === -1) {
-        t.current += delta * JUMP_SPEED;
-        const p = Math.min(t.current, 1);
-
-        if (t.current <= 1) {
-          pos.z = basePosition[2] + (ANSWER_ROW_Z - basePosition[2]) * p;
-          pos.y = basePosition[1] + Math.sin(p * Math.PI) * JUMP_HEIGHT;
-          group.current.scale.y = 1 + Math.sin(p * Math.PI) * 0.25;
-        }
-
-        if (t.current >= 1 && !wrongFlashFired.current) {
-          wrongFlashFired.current = true;
-          group.current.scale.y = 1;
-          triggerStandingFall();
-          flashTiles();
-          if (lives > 0) {
-            done.current = true;
-            setAdvancingWrong();
+        if (lives === 0) {
+          // last life — fall immediately with tile, no jump
+          if (!wrongFlashFired.current) {
+            wrongFlashFired.current = true;
+            triggerStandingFall();
+            landWrongTile();
+            flashTiles();
           }
-        }
-
-        if (lives === 0 && t.current > 1) {
-          const fallT = t.current - 1;
-          pos.y = basePosition[1] - fallT * fallT * FALL_GRAVITY * 60;
+          t.current += delta;
+          pos.y = basePosition[1] - t.current * t.current * FALL_GRAVITY * 60;
           if (pos.y < -8 && !done.current) {
             done.current = true;
             wrongDelay.current = 2;
+          }
+        } else {
+          // lives > 0 — jump forward then advance
+          t.current += delta * JUMP_SPEED;
+          const p = Math.min(t.current, 1);
+          pos.z = basePosition[2] + (ANSWER_ROW_Z - basePosition[2]) * p;
+          pos.y = basePosition[1] + Math.sin(p * Math.PI) * JUMP_HEIGHT;
+          group.current.scale.y = 1 + Math.sin(p * Math.PI) * 0.25;
+          if (t.current >= 1 && !wrongFlashFired.current) {
+            wrongFlashFired.current = true;
+            group.current.scale.y = 1;
+            triggerStandingFall();
+            landWrongTile();
+            flashTiles();
+            done.current = true;
+            setAdvancingWrong();
           }
         }
         return;
       }
 
-      // WRONG TILE: arc jump, then fall only on last life
+      // WRONG TILE: arc jump for all cases; fall or advance after landing
+      const targetX = TILE_X[selectedTileIndex];
       t.current += delta * JUMP_SPEED;
       const p = Math.min(t.current, 1);
-      const targetX = TILE_X[selectedTileIndex];
       pos.x = basePosition[0] + (targetX - basePosition[0]) * p;
       pos.z = basePosition[2] + (ANSWER_ROW_Z - basePosition[2]) * p;
 
@@ -179,7 +238,7 @@ export function Character({ basePosition }: Props) {
       } else {
         group.current.scale.y = 1;
         if (lives === 0) {
-          const fallT = t.current - 1;
+          const fallT = (t.current - 1) / JUMP_SPEED;
           pos.y = basePosition[1] - fallT * fallT * FALL_GRAVITY * 60;
         } else {
           pos.y = basePosition[1];
@@ -197,6 +256,10 @@ export function Character({ basePosition }: Props) {
           done.current = true;
           setAdvancingWrong();
         }
+      }
+      if (lives === 0 && pos.y < -8 && !done.current) {
+        done.current = true;
+        wrongDelay.current = 2;
       }
       if (lives === 0 && pos.y < -8 && !done.current) {
         done.current = true;

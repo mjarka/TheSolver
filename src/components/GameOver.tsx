@@ -10,14 +10,27 @@ export function GameOver() {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-black/70 z-50">
       <div className="text-white text-center px-8">
-        <div className="text-6xl font-black mb-2">Game Over</div>
-        <div className="text-2xl text-white/70 mb-8">Wynik: {score}</div>
+        <div className="gameover-title">Game Over</div>
+        <div className="gameover-score">Score: {score}</div>
         <button
+          type="button"
           onClick={restartGame}
-          className="px-10 py-4 text-xl font-bold rounded-2xl bg-white text-black
-                     active:scale-95 transition-transform"
+          className="gameover-btn active:scale-95 transition-transform"
         >
-          Zagraj ponownie
+          <svg
+            className="gameover-btn-outline"
+            viewBox="0 0 1656.89 378.16"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <polygon
+              points="1656.89 171.7 1656.89 378.16 148.9 378.16 0 229.26 0 0 1485.19 0 1656.89 171.7"
+              fill="none"
+              stroke="rgba(255,255,255,0.7)"
+              strokeWidth="18"
+            />
+          </svg>
+          Play Again
         </button>
       </div>
     </div>

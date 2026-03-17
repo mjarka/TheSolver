@@ -1,5 +1,46 @@
 @import "tailwindcss";
 
+.lives-hud {
+  position: fixed;
+  top: 1.2rem;
+  left: 1.2rem;
+  display: flex;
+  gap: 0.4rem;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.heart-icon {
+  width: clamp(1.2rem, 5vw, 1.8rem);
+  height: auto;
+}
+
+.score-hud {
+  position: fixed;
+  top: 1.2rem;
+  right: 1.2rem;
+  text-align: right;
+  font-family: "Chakra Petch", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.5rem, 12vw, 4rem);
+  color: #fff;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+  line-height: 1;
+  text-shadow: 0 4px 32px rgba(0, 0, 0, 0.5);
+}
+
+.score-label {
+  display: block;
+  font-size: 0.25em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
 .math-hud {
   position: fixed;
   bottom: 2.8rem;
@@ -12,30 +53,20 @@
   user-select: none;
 }
 
-.math-meta {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 0.4rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
 @font-face {
-  font-family: 'Chakra Petch';
-  src: url('/fonts/ChakraPetch-Bold.ttf') format('truetype');
+  font-family: "Chakra Petch";
+  src: url("/fonts/ChakraPetch-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
 }
 
 .math-label {
   color: #fff;
-  font-family: 'Chakra Petch', system-ui, sans-serif;
+  font-family: "Chakra Petch", system-ui, sans-serif;
   font-weight: 700;
-  font-size: clamp(2.2rem, 10vw, 4.5rem);
+  font-size: clamp(2.8rem, 13vw, 5.5rem);
   line-height: 1;
+  margin-bottom: 0.6rem;
   text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
   opacity: 1;
   transition: opacity 0.2s;
@@ -76,12 +107,202 @@ body {
   background: #1a1a2e;
 }
 
+.gameover-title {
+  font-family: "Chakra Petch", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(3rem, 14vw, 5rem);
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+  margin-bottom: 0.5rem;
+}
+
+.gameover-btn {
+  font-family: "Chakra Petch", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.2rem, 5vw, 1.6rem);
+  color: #fff;
+  background: transparent;
+  border: none;
+  padding: 1rem 3rem;
+  cursor: pointer;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gameover-btn-outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.gameover-score {
+  font-family: "Chakra Petch", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.4rem, 6vw, 2rem);
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1;
+  margin-bottom: 2rem;
+}
+
+.start-header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 55%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 5%;
+  gap: 1.5rem;
+  z-index: 50;
+  pointer-events: none;
+  background: linear-gradient(to bottom, #0a0a1a 5%, transparent 100%);
+}
+
+.start-logo {
+  width: min(72vw, 320px);
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+.level-list {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  width: min(92vw, 480px);
+}
+
+.level-btn-wrap {
+  flex: 1;
+  position: relative;
+  opacity: 0.45;
+  transform: scale(1);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+  pointer-events: auto;
+}
+
+.level-btn-wrap[data-difficulty="easy"] {
+  color: #4ade80;
+}
+.level-btn-wrap[data-difficulty="medium"] {
+  color: #facc15;
+}
+.level-btn-wrap[data-difficulty="hard"] {
+  color: #f87171;
+}
+
+.level-btn-wrap--active {
+  opacity: 1;
+  transform: scale(1.04);
+}
+
+.level-btn-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.level-btn {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0.8rem 0.5rem;
+  cursor: pointer;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.level-btn-label {
+  font-family: "Chakra Petch", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.6rem, 7vw, 2.2rem);
+  color: #fff;
+  line-height: 1;
+}
+
+.level-btn-sub {
+  font-family: "Chakra Petch", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.75rem, 3vw, 0.95rem);
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #1a1a2e;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.loading-screen--out {
+  opacity: 0;
+}
+
+.loading-bar-wrap {
+  width: min(60vw, 280px);
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.loading-bar-fill {
+  height: 100%;
+  width: var(--pct, 0%);
+  background: #fff;
+  border-radius: 9999px;
+  transition: width 0.2s ease;
+}
+
+.loading-pct {
+  font-family: "Chakra Petch", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.1em;
+}
+
+.app-root {
+  background-color: #1a1a2e;
+  background-image: url("/background.jpg");
+  background-size: auto;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 .hud-backdrop {
   position: fixed;
   inset: auto 0 0 0;
   height: 45%;
   pointer-events: none;
-  background: linear-gradient(to top, #0a0a1a 35%, transparent 100%);
+  background: linear-gradient(
+    to top,
+    #0a0a1a 0%,
+    rgba(10, 10, 26, 0.95) 35%,
+    rgba(10, 10, 26, 0.8) 56%,
+    rgba(10, 10, 26, 0.5) 75%,
+    rgba(10, 10, 26, 0.15) 90%,
+    transparent 100%
+  );
 }
 
 .timer-wrap {
